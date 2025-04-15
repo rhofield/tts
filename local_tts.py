@@ -85,8 +85,41 @@ class LocalTTS:
 
 if __name__ == "__main__":
     text = '''
-    [Kokoro](/kˈOkəɹO/) is an open-weight TTS model with 82 million parameters. Despite its lightweight architecture, it delivers comparable quality to larger models while being significantly faster and more cost-efficient.
+Households in our base specification are composed of a female ( f ) and a male (m) of equal age.
+The model periods are in months indexed by t = 1, 2, . . . , Tmax, where Tmax is the month of death of
+the last remaining survivor from the couple. Each member of the household is eligible to work and
+save starting from the first month of age 25 (t = 1). The retirement date is denoted Tret, and our base
+case specifies an exogenous retirement age of 65, such that Tret = 480. An individual may experience
+nonemployment during their potential working years, such that not all investors work the full 40 years.
+In the base case, we assume that individuals save rc = 10% of their labor income for retirement, and
+no contributions occur during nonemployment periods. The assumed 10% contribution rate is close
+to the mean (11.7%) and median (11.0%) contribution rates for participants in Vanguard definedcontribution plans in 2023, including both employee and employer contributions [Vanguard (2024)].
+16
+We also assume that individuals earning less than Ymin = $15,000 (in 2022 USD) in a given year forego
+contributing to their retirement plan, consistent with evidence of low retirement saving rates among
+this group [e.g., Vanguard (2024)].
+At time Tret+1, each individual leaves the workforce (ending either employment or nonemployment)
+and begins to draw from retirement savings and Social Security. We assume that investors withdraw
+rw = 4% of their account balance at retirement in the first year and inflation-adjusted amounts calculated from this base withdrawal in subsequent years [i.e., the “4% rule” of Bengen (1994)]. In reality,
+retirees use a variety of withdrawal strategies. The 4% rule is ubiquitous in popular press and common
+retirement advice, so we use it as a simple heuristic for retirement withdrawals.17 We also demonstrate that our main conclusions hold for alternative retirement withdrawal rules. We note that the outcomes
+of households who choose to annuitize fully at retirement will be reflected by our wealth at retirement
+results.
+The Social Security Administration (SSA) reports conditional death probabilities at each age for
+females and males.18 Our simulations incorporate gender-specific longevity risk, and the lifespan of
+each individual is randomly determined. Both the female and the male in each couple are alive at
+age 25, but one or both may die before retirement at age 65. There is considerable uncertainty over
+longevity outcomes. The 5th percentile of age at death for the couple (i.e., the last survivor) is 70.8
+years, and the 95th percentile is 100.0 years. This uncertainty is an important feature to consider in
+assessing the ability of investment strategies to fund consumption through retirement (see the internet
+appendix for further details on the distribution of age at death).
+Given the simulation design, the (unmodeled) consumption and potential survivor benefits from
+Social Security during the pre-retirement period are independent of the retirement investment strategy.
+As such, we do not study consumption in the pre-retirement period and do not include it in the utility
+calculations.
     '''
-    local_tts = LocalTTS(lang_code='a', voices=[{'voice_id': 'af_heart', 'weight': 0.5}, {'voice_id': 'am_michael', 'weight': 1}])
-    local_tts.save_audio(text, 'test.wav')
+
+    # [{'voice_id': 'af_heart', 'weight': 0.5}, {'voice_id': 'am_michael', 'weight': 1}]
+    local_tts = LocalTTS(lang_code='a', voices=[{'voice_id': 'af_heart', 'weight': 1}])
+    local_tts.save_audio(text, 'Lifecycle design.wav')
 

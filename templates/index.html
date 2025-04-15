@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kokoro TTS Web UI</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 1em;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #555;
+        }
+        label {
+            display: block;
+            margin-top: 1em;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            padding: 0.5em;
+            margin-top: 0.5em;
+            min-height: 100px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+        }
+        .voice-slider {
+            margin-bottom: 1em;
+        }
+        .voice-slider label {
+            display: inline-block;
+            width: 150px; /* Adjust as needed */
+            margin-right: 10px;
+            font-weight: normal;
+        }
+        .voice-slider input[type="range"] {
+            width: calc(100% - 200px); /* Adjust based on label width and span width */
+            vertical-align: middle;
+        }
+        .voice-slider span {
+            display: inline-block;
+            width: 40px; /* Width for the percentage display */
+            text-align: right;
+            vertical-align: middle;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 0.8em;
+            margin-top: 1.5em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #audio-player-container {
+            margin-top: 2em;
+            text-align: center;
+        }
+        audio {
+            width: 100%;
+            margin-top: 0.5em;
+        }
+        #status {
+            margin-top: 1em;
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+        #error-message {
+            margin-top: 1em;
+            padding: 0.8em;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <h1>Kokoro TTS Voice Blender</h1>
+
+    <label for="text-input">Text to Synthesize:</label>
+    <textarea id="text-input" placeholder="Enter text here..."></textarea>
+
+    <h2>Voice Weights</h2>
+    <div id="sliders-container">
+        {% for voice in voices %}
+        <div class="voice-slider">
+            <label for="{{ voice }}">{{ voice }}:</label>
+            <input type="range" id="{{ voice }}" name="{{ voice }}" min="0" max="1" step="0.01" value="0" data-voice-id="{{ voice }}">
+            <span id="{{ voice }}-value">0%</span>
+        </div>
+        {% endfor %}
+    </div>
+    <p><i>Note: Weights will be normalized if they don't sum to 1.</i></p>
+
+    <button id="generate-button">Generate Audio</button>
+
+    <div id="status"></div>
+    <div id="error-message"></div>
+
+    <div id="audio-player-container" style="display: none;">
+        <label>Generated Audio:</label>
+        <audio id="audio-player" controls></audio>
+    </div>
+
+    <script>
+        const sliders = document.querySelectorAll('input[type="range"]');
+        const generateButton = document.getElementById('generate-button');
+        const textInput = document.getElementById('text-input');
+        const statusDiv = document.getElementById('status');
+        const errorDiv = document.getElementById('error-message');
+        const audioPlayerContainer = document.getElementById('audio-player-container');
+        const audioPlayer = document.getElementById('audio-player');
+
+        // Update percentage display when slider value changes
+        sliders.forEach(slider => {
+            const valueSpan = document.getElementById(`${slider.id}-value`);
+            slider.addEventListener('input', () => {
+                valueSpan.textContent = `${Math.round(slider.value * 100)}%`;
+            });
+            // Set initial default value for the first slider if available
+            if (slider === sliders[0]) {
+                slider.value = 1; // Start with first voice at 100%
+                 valueSpan.textContent = `100%`;
+            }
+        });
+
+        generateButton.addEventListener('click', async () => {
+            generateButton.disabled = true;
+            statusDiv.textContent = 'Generating audio... Please wait.';
+            errorDiv.style.display = 'none'; // Hide previous errors
+            audioPlayerContainer.style.display = 'none'; // Hide player
+
+            const text = textInput.value.trim();
+            const weights = {};
+            sliders.forEach(slider => {
+                weights[slider.dataset.voiceId] = parseFloat(slider.value);
+            });
+
+            // Basic validation
+            if (!text) {
+                 errorDiv.textContent = 'Error: Text input cannot be empty.';
+                 errorDiv.style.display = 'block';
+                 statusDiv.textContent = '';
+                 generateButton.disabled = false;
+                 return;
+            }
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text, weights: weights }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    audioPlayer.src = result.audio_url;
+                    audioPlayerContainer.style.display = 'block';
+                    statusDiv.textContent = 'Audio generated successfully!';
+                } else {
+                    throw new Error(result.error || `Server error: ${response.status}`);
+                }
+
+            } catch (error) {
+                console.error('Generation failed:', error);
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+                statusDiv.textContent = 'Generation failed.';
+            } finally {
+                generateButton.disabled = false; // Re-enable button
+            }
+        });
+    </script>
+</body>
+</html> 
